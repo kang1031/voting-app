@@ -16,6 +16,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/" className="text-lg font-bold">
               투표 앱
             </Link>
+            <Link href="/admin" className="text-sm text-slate-500 hover:underline">
+              운영자
+            </Link>
           </div>
         </header>
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>

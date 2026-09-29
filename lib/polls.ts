@@ -84,3 +84,27 @@ export async function castVote(pollId: string, optionId: string, voterId: string
     throw error;
   }
 }
+
+/** 모든 투표의 선택지별 표 수(운영자 화면용). 투표 ID → 선택지 순서대로의 표 수 */
+export async function getAllOptionCounts(): Promise<Map<string, OptionCount[]>> {
+  const rows = (await db()`
+    SELECT o.poll_id, o.id, o.label, count(v.voter_id)::int AS count
+    FROM options o LEFT JOIN votes v ON v.option_id = o.id
+    GROUP BY o.poll_id, o.id, o.label, o.position
+    ORDER BY o.poll_id, o.position
+  `) as (OptionCount & { poll_id: string })[];
+  const byPoll = new Map<string, OptionCount[]>();
+  for (const { poll_id, ...count } of rows) {
+    byPoll.set(poll_id, [...(byPoll.get(poll_id) ?? []), count]);
+  }
+  return byPoll;
+}
+
+export async function setDeadline(pollId: string, deadline: Date): Promise<void> {
+  await db()`UPDATE polls SET deadline = ${deadline} WHERE id = ${pollId}`;
+}
+
+/** 선택지와 표도 함께 지워진다(ON DELETE CASCADE). */
+export async function deletePoll(pollId: string): Promise<void> {
+  await db()`DELETE FROM polls WHERE id = ${pollId}`;
+}

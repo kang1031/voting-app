@@ -114,3 +114,8 @@ function largestRemainderPercents(counts: OptionCount[], total: number): number[
   }
   return percents;
 }
+
+/** 조기 마감 계산: 마감을 지금으로 앞당긴 새 마감. 이미 마감된 투표는 그대로 두어 연장하지 않는다. */
+export function closeEarly(poll: PollTiming, now: Date): Date {
+  return poll.deadline !== null && isClosed(poll, now) ? poll.deadline : now;
+}

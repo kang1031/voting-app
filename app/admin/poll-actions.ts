@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { requireOperator } from "@/lib/operator";
-import { validatePollInput, type PollInputErrors } from "@/lib/poll-rules";
-import { createPoll } from "@/lib/polls";
+import { closeEarly, validatePollInput, type PollInputErrors } from "@/lib/poll-rules";
+import { createPoll, deletePoll, getPoll, setDeadline } from "@/lib/polls";
 
 export type CreatePollState = { errors?: PollInputErrors };
 
@@ -27,4 +27,18 @@ export async function createPollAction(
 
   const id = await createPoll(result.value);
   redirect(`/polls/${id}`);
+}
+
+export async function closePollEarlyAction(formData: FormData): Promise<void> {
+  await requireOperator();
+  const poll = await getPoll(String(formData.get("pollId") ?? ""));
+  if (poll) await setDeadline(poll.id, closeEarly(poll, new Date()));
+  redirect("/admin");
+}
+
+export async function deletePollAction(formData: FormData): Promise<void> {
+  await requireOperator();
+  const poll = await getPoll(String(formData.get("pollId") ?? ""));
+  if (poll) await deletePoll(poll.id);
+  redirect("/admin");
 }

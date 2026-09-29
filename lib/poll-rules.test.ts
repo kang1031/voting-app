@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { canSeeResult, computeResult, isClosed, judgeVote, validatePollInput } from "./poll-rules";
+import {
+  canSeeResult,
+  closeEarly,
+  computeResult,
+  isClosed,
+  judgeVote,
+  validatePollInput,
+} from "./poll-rules";
 
 const now = new Date("2026-10-01T12:00:00Z");
 const later = new Date("2026-10-02T12:00:00Z");
@@ -209,5 +216,21 @@ describe("결과 계산: 경계", () => {
       "b",
     );
     expect(result.options.map((o) => o.percent)).toEqual([0, 100]);
+  });
+});
+
+describe("조기 마감 계산", () => {
+  it("마감이 없는 투표는 지금 마감된다", () => {
+    expect(closeEarly({ deadline: null }, now)).toEqual(now);
+  });
+});
+
+describe("조기 마감 계산: 앞당기기만 한다", () => {
+  it("미래 마감은 지금으로 앞당긴다", () => {
+    expect(closeEarly({ deadline: later }, now)).toEqual(now);
+  });
+
+  it("이미 지난 마감은 그대로 둔다(연장하지 않는다)", () => {
+    expect(closeEarly({ deadline: earlier }, now)).toEqual(earlier);
   });
 });
