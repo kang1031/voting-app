@@ -22,6 +22,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </header>
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>
+        <p className="pointer-events-none fixed right-3 bottom-2 text-xs text-slate-400 dark:text-slate-500">
+          강동헌
+        </p>
       </body>
     </html>
   );
