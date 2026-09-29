@@ -45,3 +45,72 @@ function charLength(text: string): number {
 export function isClosed(poll: PollTiming, now: Date): boolean {
   return poll.deadline !== null && poll.deadline.getTime() <= now.getTime();
 }
+
+export type VoteRejection = "closed" | "already-voted" | "unknown-option";
+export type VoteJudgement = { ok: true } | { ok: false; reason: VoteRejection };
+
+/**
+ * 표 제출 판정. 마감을 가장 먼저 본다.
+ * "이미 투표함"은 1차 방어일 뿐이고, 동시에 들어온 요청은 DB 유일 제약이 막는다.
+ */
+export function judgeVote({
+  poll,
+  optionId,
+  alreadyVoted,
+  now,
+}: {
+  poll: PollTiming & { optionIds: string[] };
+  optionId: string;
+  alreadyVoted: boolean;
+  now: Date;
+}): VoteJudgement {
+  if (isClosed(poll, now)) return { ok: false, reason: "closed" };
+  if (alreadyVoted) return { ok: false, reason: "already-voted" };
+  if (!poll.optionIds.includes(optionId)) return { ok: false, reason: "unknown-option" };
+  return { ok: true };
+}
+
+export type Viewer = "operator" | "voter";
+
+/** 결과 공개 여부 판정: 운영자는 언제나, 투표자는 표를 던진 뒤나 마감된 뒤에 본다. */
+export function canSeeResult({
+  viewer,
+  hasVoted,
+  closed,
+}: {
+  viewer: Viewer;
+  hasVoted: boolean;
+  closed: boolean;
+}): boolean {
+  return viewer === "operator" || hasVoted || closed;
+}
+
+export type OptionCount = { id: string; label: string; count: number };
+export type OptionResult = OptionCount & { percent: number; mine: boolean };
+export type PollResult = { total: number; options: OptionResult[] };
+
+/** 결과 계산. 비율은 정수 %이고, 표가 있으면 합계가 정확히 100이 되도록 최대 나머지 방식으로 반올림한다. */
+export function computeResult(counts: OptionCount[], myOptionId: string | null): PollResult {
+  const total = counts.reduce((sum, o) => sum + o.count, 0);
+  const percents = total === 0 ? counts.map(() => 0) : largestRemainderPercents(counts, total);
+  return {
+    total,
+    options: counts.map((o, i) => ({ ...o, percent: percents[i], mine: o.id === myOptionId })),
+  };
+}
+
+function largestRemainderPercents(counts: OptionCount[], total: number): number[] {
+  const exact = counts.map((o) => (o.count * 100) / total);
+  const percents = exact.map(Math.floor);
+  let remaining = 100 - percents.reduce((sum, p) => sum + p, 0);
+  // 나머지가 큰 순서, 같으면 앞 선택지부터 1%씩 더 준다.
+  const order = exact
+    .map((value, i) => ({ i, remainder: value - Math.floor(value) }))
+    .sort((a, b) => b.remainder - a.remainder || a.i - b.i);
+  for (const { i } of order) {
+    if (remaining <= 0) break;
+    percents[i] += 1;
+    remaining -= 1;
+  }
+  return percents;
+}

@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "./db";
-import type { PollInput } from "./poll-rules";
+import type { OptionCount, PollInput } from "./poll-rules";
 
 // 투표·선택지·표 데이터 접근. 규칙 판단은 poll-rules.ts가 하고, 여기서는 읽고 쓰기만 한다.
 
@@ -46,4 +46,41 @@ export async function getPoll(id: string): Promise<Poll | null> {
   ])) as [PollRow[], PollOption[]];
   const row = polls[0];
   return row ? { ...toSummary(row), options } : null;
+}
+
+/** 이 투표자가 이 투표에서 고른 선택지. 아직 표를 던지지 않았으면 null. */
+export async function getVoterOptionId(pollId: string, voterId: string): Promise<string | null> {
+  const rows = (await db()`
+    SELECT option_id FROM votes WHERE poll_id = ${pollId} AND voter_id = ${voterId}
+  `) as { option_id: string }[];
+  return rows[0]?.option_id ?? null;
+}
+
+/** 선택지 순서대로 표 수 */
+export async function getOptionCounts(pollId: string): Promise<OptionCount[]> {
+  const rows = (await db()`
+    SELECT o.id, o.label, count(v.voter_id)::int AS count
+    FROM options o LEFT JOIN votes v ON v.option_id = o.id
+    WHERE o.poll_id = ${pollId}
+    GROUP BY o.id, o.label, o.position
+    ORDER BY o.position
+  `) as OptionCount[];
+  return rows;
+}
+
+export type CastVoteOutcome = "saved" | "already-voted" | "poll-gone";
+
+/** 표 저장. 동시에 들어온 두 번째 표는 DB 유일 제약이 막는다. */
+export async function castVote(pollId: string, optionId: string, voterId: string): Promise<CastVoteOutcome> {
+  try {
+    await db()`
+      INSERT INTO votes (poll_id, option_id, voter_id) VALUES (${pollId}, ${optionId}, ${voterId})
+    `;
+    return "saved";
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code === "23505") return "already-voted"; // unique_violation
+    if (code === "23503") return "poll-gone"; // foreign_key_violation: 그 사이 삭제됨
+    throw error;
+  }
 }
