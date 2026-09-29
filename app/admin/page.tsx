@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireOperator } from "@/lib/operator";
 import { canSeeResult, computeResult, isClosed, type OptionCount } from "@/lib/poll-rules";
 import { getAllOptionCounts, listPolls, type PollSummary } from "@/lib/polls";
+import { BackToListLink } from "@/app/back-to-list-link";
 import { LocalTime } from "@/app/local-time";
 import { ResultView } from "@/app/result-view";
 import { logout } from "./auth-actions";
@@ -37,6 +38,7 @@ export default async function OperatorPage() {
 
   return (
     <div className="flex flex-col gap-8">
+      <BackToListLink />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">운영자 화면</h1>
         <form action={logout}>

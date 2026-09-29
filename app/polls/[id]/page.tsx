@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { canSeeResult, computeResult, isClosed } from "@/lib/poll-rules";
 import { getOptionCounts, getPoll, getVoterOptionId } from "@/lib/polls";
 import { getVoterId } from "@/lib/voter";
+import { BackToListLink } from "@/app/back-to-list-link";
 import { LocalTime } from "@/app/local-time";
 import { ResultView } from "@/app/result-view";
 import { voteNoticeMessage } from "./notices";
@@ -32,12 +32,7 @@ export default async function PollPage(props: PageProps<"/polls/[id]">) {
 
   return (
     <article className="flex flex-col gap-4">
-      <Link
-        href="/"
-        className="self-start rounded-md border border-slate-300 px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-      >
-        ← 목록으로
-      </Link>
+      <BackToListLink />
       <header>
         <h1 className="text-xl font-bold break-words">{poll.question}</h1>
         <p className="mt-1 text-sm text-slate-500">
