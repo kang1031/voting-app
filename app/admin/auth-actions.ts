@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { BASE_COOKIE_OPTIONS } from "@/lib/cookie-options";
 import {
   SESSION_COOKIE,
   createSessionToken,
@@ -18,13 +19,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
   const { token, expiresAt } = createSessionToken(new Date());
   const store = await cookies();
-  store.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    expires: expiresAt,
-  });
+  store.set(SESSION_COOKIE, token, { ...BASE_COOKIE_OPTIONS, expires: expiresAt });
   redirect("/admin");
 }
 

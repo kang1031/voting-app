@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "./db";
+import { isUuid } from "./uuid";
 import type { OptionCount, PollInput } from "./poll-rules";
 
 // 투표·선택지·표 데이터 접근. 규칙 판단은 poll-rules.ts가 하고, 여기서는 읽고 쓰기만 한다.
@@ -9,8 +10,6 @@ export type PollOption = { id: string; label: string };
 export type Poll = PollSummary & { options: PollOption[] };
 
 type PollRow = { id: string; question: string; deadline: Date | null; created_at: Date };
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function toSummary(row: PollRow): PollSummary {
   return { id: row.id, question: row.question, deadline: row.deadline, createdAt: row.created_at };
@@ -38,7 +37,7 @@ export async function listPolls(): Promise<PollSummary[]> {
 }
 
 export async function getPoll(id: string): Promise<Poll | null> {
-  if (!UUID.test(id)) return null;
+  if (!isUuid(id)) return null;
   const sql = db();
   const [polls, options] = (await sql.transaction([
     sql`SELECT id, question, deadline, created_at FROM polls WHERE id = ${id}`,
@@ -95,7 +94,9 @@ export async function getAllOptionCounts(): Promise<Map<string, OptionCount[]>> 
   `) as (OptionCount & { poll_id: string })[];
   const byPoll = new Map<string, OptionCount[]>();
   for (const { poll_id, ...count } of rows) {
-    byPoll.set(poll_id, [...(byPoll.get(poll_id) ?? []), count]);
+    const list = byPoll.get(poll_id);
+    if (list) list.push(count);
+    else byPoll.set(poll_id, [count]);
   }
   return byPoll;
 }

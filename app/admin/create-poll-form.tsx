@@ -1,10 +1,10 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { POLL_LIMITS } from "@/lib/poll-rules";
 import { createPollAction, type CreatePollState } from "./poll-actions";
 
-const MIN_OPTIONS = 2;
-const MAX_OPTIONS = 10;
+const { minOptions, maxOptions } = POLL_LIMITS;
 
 const inputClass =
   "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
@@ -33,7 +33,6 @@ export function CreatePollForm() {
           name="question"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          maxLength={200}
           required
           className={inputClass}
         />
@@ -42,7 +41,7 @@ export function CreatePollForm() {
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-medium">
-          선택지 ({MIN_OPTIONS}~{MAX_OPTIONS}개)
+          선택지 ({minOptions}~{maxOptions}개)
         </legend>
         {options.map((option, i) => (
           <div key={i} className="flex gap-2">
@@ -50,7 +49,6 @@ export function CreatePollForm() {
               name="option"
               value={option}
               onChange={(e) => setOptions(options.map((o, j) => (j === i ? e.target.value : o)))}
-              maxLength={100}
               required
               aria-label={`선택지 ${i + 1}`}
               className={inputClass}
@@ -58,7 +56,7 @@ export function CreatePollForm() {
             <button
               type="button"
               onClick={() => setOptions(options.filter((_, j) => j !== i))}
-              disabled={options.length <= MIN_OPTIONS}
+              disabled={options.length <= minOptions}
               className="shrink-0 rounded-md border border-slate-300 px-3 text-sm disabled:opacity-40 dark:border-slate-700"
             >
               삭제
@@ -68,7 +66,7 @@ export function CreatePollForm() {
         <button
           type="button"
           onClick={() => setOptions([...options, ""])}
-          disabled={options.length >= MAX_OPTIONS}
+          disabled={options.length >= maxOptions}
           className="self-start rounded-md border border-slate-300 px-3 py-1 text-sm disabled:opacity-40 dark:border-slate-700"
         >
           선택지 추가
@@ -80,6 +78,7 @@ export function CreatePollForm() {
         <span className="text-sm font-medium">마감 시각 (선택)</span>
         <input
           type="datetime-local"
+          name="deadlineLocal"
           value={localDeadline}
           onChange={(e) => setLocalDeadline(e.target.value)}
           className={inputClass}

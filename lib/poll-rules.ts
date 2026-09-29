@@ -3,6 +3,14 @@
 
 export type PollTiming = { deadline: Date | null };
 
+/** 투표 생성 제한. 글자 수는 코드 포인트 단위(DB의 char_length와 같음)이고, DB의 CHECK 제약과 맞춰야 한다. */
+export const POLL_LIMITS = {
+  questionMaxLength: 200,
+  optionMaxLength: 100,
+  minOptions: 2,
+  maxOptions: 10,
+} as const;
+
 export type PollInput = { question: string; options: string[]; deadline: Date | null };
 export type PollInputErrors = { question?: string; options?: string; deadline?: string };
 export type PollInputResult =
@@ -14,15 +22,17 @@ export function validatePollInput(input: PollInput, now: Date): PollInputResult 
   const question = input.question.trim();
   const options = input.options.map((o) => o.trim());
   const errors: PollInputErrors = {};
+  const { questionMaxLength, optionMaxLength, minOptions, maxOptions } = POLL_LIMITS;
 
   if (question === "") errors.question = "질문을 입력해 주세요.";
-  else if (charLength(question) > 200) errors.question = "질문은 200자 이하로 입력해 주세요.";
+  else if (charLength(question) > questionMaxLength)
+    errors.question = `질문은 ${questionMaxLength}자 이하로 입력해 주세요.`;
 
-  if (options.length < 2) errors.options = "선택지는 2개 이상이어야 합니다.";
-  else if (options.length > 10) errors.options = "선택지는 10개 이하여야 합니다.";
+  if (options.length < minOptions) errors.options = `선택지는 ${minOptions}개 이상이어야 합니다.`;
+  else if (options.length > maxOptions) errors.options = `선택지는 ${maxOptions}개 이하여야 합니다.`;
   else if (options.some((o) => o === "")) errors.options = "빈 선택지가 있습니다.";
-  else if (options.some((o) => charLength(o) > 100))
-    errors.options = "선택지는 100자 이하로 입력해 주세요.";
+  else if (options.some((o) => charLength(o) > optionMaxLength))
+    errors.options = `선택지는 ${optionMaxLength}자 이하로 입력해 주세요.`;
   else if (new Set(options).size !== options.length)
     errors.options = "같은 선택지가 두 번 있습니다.";
 

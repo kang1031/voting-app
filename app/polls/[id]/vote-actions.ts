@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { judgeVote } from "@/lib/poll-rules";
 import { castVote, getPoll, getVoterOptionId } from "@/lib/polls";
-import { getOrIssueVoterId, getVoterId } from "@/lib/voter";
+import { getOrIssueVoterId, getVoterId, withdrawVoterId } from "@/lib/voter";
 import type { VoteNotice } from "./notices";
 
 export async function castVoteAction(formData: FormData): Promise<void> {
@@ -25,8 +25,13 @@ export async function castVoteAction(formData: FormData): Promise<void> {
   });
   if (!judgement.ok) backToPoll(poll.id, judgement.reason);
 
-  const outcome = await castVote(poll.id, optionId, await getOrIssueVoterId());
-  if (outcome === "poll-gone") redirect("/?notice=deleted");
+  const voter = await getOrIssueVoterId();
+  const outcome = await castVote(poll.id, optionId, voter.id);
+  if (outcome === "poll-gone") {
+    // 판정과 저장 사이에 삭제됐다. 표가 없으니 방금 발급한 쿠키도 남기지 않는다.
+    if (voter.issued) await withdrawVoterId();
+    redirect("/?notice=deleted");
+  }
   backToPoll(poll.id, outcome === "already-voted" ? "already-voted" : undefined);
 }
 

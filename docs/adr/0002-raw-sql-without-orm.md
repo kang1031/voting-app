@@ -9,4 +9,6 @@ DB 접근은 `@neondatabase/serverless`(`neon()` HTTP 방식, 파라미터 바�
 
 ## 결과
 
+마이그레이션 스크립트만은 여러 SQL 문을 한 트랜잭션으로 실행해야 해서 같은 패키지의 `Pool`(WebSocket)을 쓴다. 앱 코드는 `neon()` HTTP만 쓴다.
+
 행(row) 타입은 TypeScript로 직접 선언하고 마이그레이션과 맞춰 유지해야 한다. 이 ADR을 다시 검토하지 않은 채 ORM을 도입해 "고치지" 않는다.

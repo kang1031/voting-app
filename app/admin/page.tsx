@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireOperator } from "@/lib/operator";
-import { canSeeResult, computeResult, isClosed } from "@/lib/poll-rules";
+import { canSeeResult, computeResult, isClosed, type OptionCount } from "@/lib/poll-rules";
 import { getAllOptionCounts, listPolls, type PollSummary } from "@/lib/polls";
 import { LocalTime } from "@/app/local-time";
 import { ResultView } from "@/app/result-view";
@@ -13,14 +13,14 @@ import { closePollEarlyAction, deletePollAction } from "./poll-actions";
 export const metadata: Metadata = { title: "운영자 화면 · 투표 앱" };
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
+export default async function OperatorPage() {
   await requireOperator();
 
   const now = new Date();
   const [polls, counts] = await Promise.all([listPolls(), getAllOptionCounts()]);
   const open = polls.filter((p) => !isClosed(p, now));
   const closed = polls.filter((p) => isClosed(p, now));
-  const section = (title: string, list: PollSummary[], isOpen: boolean) => (
+  const pollSection = (title: string, list: PollSummary[], isOpen: boolean) => (
     <section>
       <h2 className="mb-3 text-lg font-bold">{title}</h2>
       {list.length === 0 ? (
@@ -28,7 +28,7 @@ export default async function AdminPage() {
       ) : (
         <ul className="flex flex-col gap-4">
           {list.map((poll) => (
-            <AdminPollCard key={poll.id} poll={poll} counts={counts.get(poll.id) ?? []} isOpen={isOpen} />
+            <OperatorPollCard key={poll.id} poll={poll} counts={counts.get(poll.id) ?? []} isOpen={isOpen} />
           ))}
         </ul>
       )}
@@ -49,19 +49,19 @@ export default async function AdminPage() {
         <h2 className="mb-3 text-lg font-bold">새 투표 만들기</h2>
         <CreatePollForm />
       </section>
-      {section("진행 중", open, true)}
-      {section("마감됨", closed, false)}
+      {pollSection("진행 중", open, true)}
+      {pollSection("마감됨", closed, false)}
     </div>
   );
 }
 
-function AdminPollCard({
+function OperatorPollCard({
   poll,
   counts,
   isOpen,
 }: {
   poll: PollSummary;
-  counts: Parameters<typeof computeResult>[0];
+  counts: OptionCount[];
   isOpen: boolean;
 }) {
   const showResult = canSeeResult({ viewer: "operator", hasVoted: false, closed: !isOpen });
